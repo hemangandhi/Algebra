@@ -13,7 +13,7 @@ struct TestCase {
     virtual bool operator() = 0;
     virtual std::string ToString = 0;
 
-    static void ExecuteTests();
+    static void ExecuteTests(bool break_on_first = false);
 
     private:
         int idx;

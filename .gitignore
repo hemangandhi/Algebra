@@ -1,0 +1,9 @@
+# Adam fix ur IDE
+.idea/
+*.iml
+
+# cpp built files
+*.out
+*.gch
+*.lib
+*.ar
