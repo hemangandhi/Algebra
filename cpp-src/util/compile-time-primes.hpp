@@ -3,7 +3,7 @@
 
 // A compile-time sieve implementation of the list of primes.
 // Prime<N>::value is the Nth prime with Prime<0>::value as 2.
-// Constructs 2 N^2 types to resolve the Nth prime.
+// Constructs N * Primes<N>::value
 
 // Forward-declaration of primes since the sieve needs it.
 template <int N>

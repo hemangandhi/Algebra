@@ -7,3 +7,7 @@
 *.gch
 *.lib
 *.ar
+
+# I'm a meme
+test-main.cpp
+test-main
