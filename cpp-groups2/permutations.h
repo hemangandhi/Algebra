@@ -18,29 +18,35 @@ namespace groups {
 // forces the template type to be size_t.
 // See https://stackoverflow.com/questions/21740896/c-template-parameter-deduction-for-stdarray-with-non-size-t-integer
 // for more.
-// TODO: make constructors private and provide a static Create method to ensure
-// the bijectivity of permutations.
 template<size_t N>
 class Permutation{
  public:
-  // Constructs from a shorter array, embedding a permutation of a smaller
-  // set into the permutations of N things (by acting trivially on the rest of
-  // the set).
+  // Copy constructor and constructor from smaller permutations. Since we're
+  // given a permutation, we may skip verification.
   template<size_t M>
   requires (M <= N)
-    explicit Permutation(const std::array<int, M>& dests) {
-    for(size_t i = 0; i < M; i++){
-      dests_[i] = dests[i];
+  Permutation(const Permutation<M>& other) : Permutation(other.dests_) {};
+  
+  // Constructs from a smaller permutation. Ensures bijectivity.
+  template<size_t M>
+  requires (M <= N)
+  static std::optional<Permutation> Create(const std::array<int, M>& other) {
+    bool checked[M];
+    for(int i = 0; i < M; i++) {
+      checked[i] = false;
     }
-    for(size_t i = M; i < N; i++) {
-      dests_[i] = i;
+    for (int i = 0; i < M; i++) {
+      // not the right type of function
+      if (other[i] > M || other[i] < 0) return std::nullopt;
+      // not 1-1
+      if (checked[other[i]]) return std::nullopt;
+      checked[other[i]] = true;
     }
+    // not onto
+    if (std::any_of(checked, checked + M, [](const bool& b) {return !b;}))
+      return std::nullopt;
+    return Permutation(other);
   }
-
-  // Constructs from a smaller permutation.
-  template<size_t M>
-  requires (M <= N)
-  explicit Permutation(const Permutation<M>& other) : Permutation(other.get_mapping()) {}
 
   // Invert a permutation. Safe since permutations are bijective.
   Permutation<N> operator-() const {
@@ -82,7 +88,7 @@ class Permutation{
     for(size_t i = 1; i < N; i++) {
       big_cycle[i] = i - 1;
     }
-    return std::set{Permutation<N>(Permutation<2>(two_cycle)), Permutation<N>(big_cycle)};
+    return std::set{Permutation<N>(two_cycle), Permutation<N>(big_cycle)};
   }
 
   friend std::ostream& operator<<(std::ostream& o, const Permutation<N>& s) {
@@ -99,6 +105,20 @@ class Permutation{
   
  private:
   std::array<int, N> dests_;
+  // Constructs from a shorter array, embedding a permutation of a smaller
+  // set into the permutations of N things (by acting trivially on the rest of
+  // the set). Called in Create once bijectivity is verified.
+  template<size_t M>
+  requires (M <= N)
+    explicit Permutation(const std::array<int, M>& dests) {
+    for(size_t i = 0; i < M; i++){
+      dests_[i] = dests[i];
+    }
+    for(size_t i = M; i < N; i++) {
+      dests_[i] = i;
+    }
+  }
+
 };
 
 } // namespace groups

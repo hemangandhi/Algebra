@@ -109,8 +109,8 @@ class Group {
 	    // exercise.
 	    augmented = true;
 	    elements.insert(x * y);
+	    abelian = abelian && x * y == y * x;
 	    if (!elements.contains(y * x)) elements.insert(y * x);
-	    abelian = x * y == y * x;
 	  }
 	}
       }
