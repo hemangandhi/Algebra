@@ -1,7 +1,6 @@
 #ifndef ALGEBRA_GROUP_H_
 #define ALGEBRA_GROUP_H_
 
-
 #include <array>
 #include <algorithm>
 #include <concepts>
@@ -9,7 +8,15 @@
 #include <ostream>
 #include <set>
 
-
+// The basic class that represents a finite group.
+//
+// This library is for finite groups that have known sets of generators.
+// The representation assumes that all group elements are from different sets.
+// For instance the 3 that occurs in Z4 and the 3 that occurs in Z5 are
+// different objects. An alternative would be for the group to enforce relations
+// on the types (perhaps as template parameters).
+// TODO: consider an implementation where the requirements of GroupElement are
+// provided through C++ functors.
 namespace groups {
 
 // Group concept: requires ordering and multiplication.
@@ -26,6 +33,9 @@ concept GroupElement = requires(T e1, T e2) {
 };
 
 // A group of elements.
+//
+// Implemented as a std::set of elements to avoid complications with hashing.
+// This also allows better reproducibility for outputs.
 template <GroupElement E>
 class Group {
  public:
@@ -37,11 +47,17 @@ class Group {
   // std::nullopt is returned when the properties cannot be assured.
   // Since it requires a different, slower, traversal, assurances of
   // associativity are provided through a separate instance method.
-  // This algorithm does, however, require associativity for correctness.
+  // Note that this algorithm does not actually require associativity to run
+  // correctly, though a non-associative set of elements with a multiplication,
+  // identity, and inversion rule, do not define a group.
   static std::optional<Group> Create(const std::set<E>& generators) {
     std::set<E> elements;
     std::optional<E> identity;
     // Step 1: copy in the generators and generate cycles.
+    // This feels like an optimization since cyclic groups and abelian
+    // groups would take far fewer Bellman-Ford iterations after this.
+    // This also provides some convenient checks and an opportunity to
+    // halt quickly if a group is larger than a certain size.
     bool set_identity = false;
     for(const E& g: generators) {
       std::optional<E> prev;
@@ -83,27 +99,31 @@ class Group {
 	for (const E& y: elements) {
 	  if (y == *identity || x == y) continue;
 	  if (!elements.contains(x * y)) {
-	    // N.B. if x < x * y, we need not run the outer loop again.
-	    augmented = !(x < (x * y));
-	    // If we're using the optimization, we may need to check y * x
-	    // to be sure. But that element could be small enough.
-	    if (!augmented && !elements.contains(y * x)) {
-	      elements.insert(y * x);
-	      augmented = !(x < (y * x));
-	    }
+	    // N.B. there's a potential optimization here that could be found by
+	    // observing that if x < x * y, the outer loop will run over x*y in
+	    // this Bellman-Ford iteration. However, this may conflate a lot of
+	    // weird things with non-abelian cases. Furthermore, it may
+	    // introduce an assumption of Abelianness which this formulation
+	    // seems not to.
+	    // The optimization needs benchmarks and is left to the reader as an
+	    // exercise.
+	    augmented = true;
 	    elements.insert(x * y);
+	    if (!elements.contains(y * x)) elements.insert(y * x);
 	    abelian = x * y == y * x;
-	  } // If statement for x * y.
+	  }
 	}
       }
     } // Bellman-Ford outer loop
     return Group<E>(*identity, elements, abelian);
   }
 
+  // Accessors.
   const std::set<E>& elements() const { return elements_; }
   const E& identity() const { return identity_; }
   bool is_abelian() const { return abelian_; }
 
+  // Cubic-time associativity test.
   bool TestAssociativity() const {
     for (const E& a: elements_) {
       for (const E& b: elements_) {

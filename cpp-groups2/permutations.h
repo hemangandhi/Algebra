@@ -8,12 +8,24 @@
 
 #include "group.h"
 
+// Implementation of permutations.
+
 namespace groups {
 
-// Permutation groups
+// Permutations of N items.
+//
+// Implemented as a std::array<int, N> for easier template deduction, which also
+// forces the template type to be size_t.
+// See https://stackoverflow.com/questions/21740896/c-template-parameter-deduction-for-stdarray-with-non-size-t-integer
+// for more.
+// TODO: make constructors private and provide a static Create method to ensure
+// the bijectivity of permutations.
 template<size_t N>
 class Permutation{
  public:
+  // Constructs from a shorter array, embedding a permutation of a smaller
+  // set into the permutations of N things (by acting trivially on the rest of
+  // the set).
   template<size_t M>
   requires (M <= N)
     explicit Permutation(const std::array<int, M>& dests) {
@@ -25,10 +37,12 @@ class Permutation{
     }
   }
 
+  // Constructs from a smaller permutation.
   template<size_t M>
   requires (M <= N)
   explicit Permutation(const Permutation<M>& other) : Permutation(other.get_mapping()) {}
 
+  // Invert a permutation. Safe since permutations are bijective.
   Permutation<N> operator-() const {
     std::array<int, N> new_dests;
     for(size_t i = 0; i < N; i++) {
@@ -37,6 +51,7 @@ class Permutation{
     return Permutation<N>(new_dests);
   }
 
+  // Compose permutations.
   // Note: this follows the convention of function composition so that f * g is
   // "apply g and then f".
   Permutation<N> operator*(const Permutation<N>& other) const {

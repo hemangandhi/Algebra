@@ -7,6 +7,10 @@
 
 #include "group.h"
 
+// Modular integer wrapper types.
+// Includes a type for reformulating additive notation for use in the Group
+// class.
+
 namespace groups {
 
 // Ints mod Mod.
